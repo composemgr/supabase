@@ -9,7 +9,7 @@ x-logging: &default-logging
 
 services:
   studio:
-    image: supabase/studio:20241014-c083b3b
+    image: supabase/studio:2026.04.27-sha-5f60601
     container_name: supabase-studio
     restart: always
     pull_policy: always
@@ -48,7 +48,7 @@ services:
       - supabase
 
   kong:
-    image: kong:2.8.1
+    image: kong/kong:3.9.1
     container_name: supabase-kong
     restart: always
     pull_policy: always
@@ -98,7 +98,7 @@ services:
       - cloudflare
 
   auth:
-    image: supabase/gotrue:v2.158.1
+    image: supabase/gotrue:v2.186.0
     container_name: supabase-auth
     restart: always
     pull_policy: always
@@ -158,7 +158,7 @@ services:
       - supabase
 
   rest:
-    image: postgrest/postgrest:v12.2.0
+    image: postgrest/postgrest:v14.8
     container_name: supabase-rest
     restart: always
     pull_policy: always
@@ -183,7 +183,7 @@ services:
       - supabase
 
   realtime:
-    image: supabase/realtime:v2.30.34
+    image: supabase/realtime:v2.76.5
     container_name: realtime-dev.supabase-realtime
     restart: always
     pull_policy: always
@@ -231,7 +231,7 @@ services:
       - supabase
 
   storage:
-    image: supabase/storage-api:v1.11.13
+    image: supabase/storage-api:v1.48.26
     container_name: supabase-storage
     restart: always
     pull_policy: always
@@ -278,7 +278,7 @@ services:
       - supabase
 
   imgproxy:
-    image: darthsim/imgproxy:v3.8.0
+    image: darthsim/imgproxy:v3.30.1
     container_name: supabase-imgproxy
     restart: always
     pull_policy: always
@@ -301,7 +301,7 @@ services:
       - supabase
 
   meta:
-    image: supabase/postgres-meta:v0.84.2
+    image: supabase/postgres-meta:v0.96.3
     container_name: supabase-meta
     restart: always
     pull_policy: always
@@ -324,7 +324,7 @@ services:
       - supabase
 
   functions:
-    image: supabase/edge-runtime:v1.59.0
+    image: supabase/edge-runtime:v1.71.2
     container_name: supabase-edge-functions
     restart: always
     pull_policy: always
@@ -348,7 +348,7 @@ services:
       - supabase
 
   analytics:
-    image: supabase/logflare:1.4.0
+    image: supabase/logflare:1.36.1
     container_name: supabase-analytics
     restart: always
     pull_policy: always
@@ -403,7 +403,7 @@ services:
       - cloudflare
 
   db:
-    image: supabase/postgres:15.1.1.78
+    image: supabase/postgres:15.8.1.085
     container_name: supabase-db
     restart: always
     pull_policy: always
@@ -443,7 +443,7 @@ services:
       - supabase
 
   vector:
-    image: timberio/vector:0.28.1-alpine
+    image: timberio/vector:0.53.0-alpine
     container_name: supabase-vector
     restart: always
     pull_policy: always
@@ -473,7 +473,7 @@ services:
       - supabase
 
   supavisor:
-    image: supabase/supavisor:1.1.56
+    image: supabase/supavisor:2.7.4
     container_name: supabase-pooler
     restart: always
     pull_policy: always
