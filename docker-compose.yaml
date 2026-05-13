@@ -29,6 +29,7 @@ services:
       LOGFLARE_URL: http://analytics:4000
       NEXT_PUBLIC_ENABLE_LOGS: true
       NEXT_ANALYTICS_BACKEND_PROVIDER: postgres
+      CONTAINER_NAME: supabase-studio
     healthcheck:
       test:
         [
@@ -65,6 +66,8 @@ services:
       SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY:-changeme_service_role_key}
       DASHBOARD_USERNAME: ${DASHBOARD_USERNAME:-admin}
       DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD:-changeme_dashboard_password}
+      CONTAINER_NAME: supabase-kong
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
     ports:
       - ${KONG_HTTP_PORT:-8000}:8000/tcp
       - ${KONG_HTTPS_PORT:-8443}:8443/tcp
@@ -73,8 +76,26 @@ services:
     depends_on:
       analytics:
         condition: service_healthy
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://supabase-kong:8000'
+      - 'cloudflare.hostname=supabase.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.supabase-kong.entrypoints=http'
+      - 'traefik.http.routers.supabase-kong-secure.tls=true'
+      - 'traefik.http.routers.supabase-kong.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.supabase-kong-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.supabase-kong.middlewares=supabase-kong-https-redirect'
+      - 'traefik.http.routers.supabase-kong-secure.entrypoints=https'
+      - 'traefik.http.routers.supabase-kong-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.supabase-kong-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.supabase-kong-secure.service=supabase-kong'
+      - 'traefik.http.services.supabase-kong.loadbalancer.server.port=8000'
     networks:
       - supabase
+      - proxy
+      - cloudflare
 
   auth:
     image: supabase/gotrue:v2.158.1
@@ -114,6 +135,7 @@ services:
       GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: ${MAILER_URLPATHS_EMAIL_CHANGE:-/auth/v1/verify}
       GOTRUE_EXTERNAL_PHONE_ENABLED: ${ENABLE_PHONE_SIGNUP:-true}
       GOTRUE_SMS_AUTOCONFIRM: ${ENABLE_PHONE_AUTOCONFIRM:-false}
+      CONTAINER_NAME: supabase-auth
     healthcheck:
       test:
         [
@@ -151,6 +173,7 @@ services:
       PGRST_DB_USE_LEGACY_GUCS: 'false'
       PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET:-changeme_jwt_secret_change_me_in_production}
       PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY:-3600}
+      CONTAINER_NAME: supabase-rest
     depends_on:
       db:
         condition: service_healthy
@@ -182,6 +205,7 @@ services:
       RLIMIT_NOFILE: '10000'
       APP_NAME: realtime
       SEED_SELF_HOST: true
+      CONTAINER_NAME: realtime-dev.supabase-realtime
     depends_on:
       db:
         condition: service_healthy
@@ -227,6 +251,7 @@ services:
       GLOBAL_S3_BUCKET: stub
       ENABLE_IMAGE_TRANSFORMATION: 'true'
       IMGPROXY_URL: http://imgproxy:5001
+      CONTAINER_NAME: supabase-storage
     volumes:
       - ./volumes/storage:/var/lib/storage:z
     depends_on:
@@ -264,6 +289,7 @@ services:
       IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
       IMGPROXY_USE_ETAG: 'true'
       IMGPROXY_ENABLE_WEBP_DETECTION: ${IMGPROXY_ENABLE_WEBP_DETECTION:-true}
+      CONTAINER_NAME: supabase-imgproxy
     volumes:
       - ./volumes/storage:/var/lib/storage:z
     healthcheck:
@@ -288,6 +314,7 @@ services:
       PG_META_DB_NAME: ${POSTGRES_DB:-postgres}
       PG_META_DB_USER: supabase_admin
       PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD:-changeme_db_password}
+      CONTAINER_NAME: supabase-meta
     depends_on:
       db:
         condition: service_healthy
@@ -311,6 +338,7 @@ services:
       SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:-changeme_service_role_key}
       SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST:-supabase-db}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
       VERIFY_JWT: '${FUNCTIONS_VERIFY_JWT:-false}'
+      CONTAINER_NAME: supabase-edge-functions
     volumes:
       - ./volumes/functions:/home/deno/functions:Z
     depends_on:
@@ -341,6 +369,8 @@ services:
       POSTGRES_BACKEND_URL: postgresql://supabase_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST:-supabase-db}:${POSTGRES_PORT:-5432}/_supabase
       POSTGRES_BACKEND_SCHEMA: _analytics
       LOGFLARE_FEATURE_FLAG_OVERRIDE: multibackend=true
+      CONTAINER_NAME: supabase-analytics
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
     ports:
       - 4000:4000
     healthcheck:
@@ -351,8 +381,26 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://supabase-analytics:4000'
+      - 'cloudflare.hostname=supabase.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.supabase-analytics.entrypoints=http'
+      - 'traefik.http.routers.supabase-analytics-secure.tls=true'
+      - 'traefik.http.routers.supabase-analytics.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.supabase-analytics-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.supabase-analytics.middlewares=supabase-analytics-https-redirect'
+      - 'traefik.http.routers.supabase-analytics-secure.entrypoints=https'
+      - 'traefik.http.routers.supabase-analytics-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.supabase-analytics-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.supabase-analytics-secure.service=supabase-analytics'
+      - 'traefik.http.services.supabase-analytics.loadbalancer.server.port=4000'
     networks:
       - supabase
+      - proxy
+      - cloudflare
 
   db:
     image: supabase/postgres:15.1.1.78
@@ -372,6 +420,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
       JWT_SECRET: ${JWT_SECRET:-changeme_jwt_secret_change_me_in_production}
       JWT_EXP: ${JWT_EXPIRY:-3600}
+      CONTAINER_NAME: supabase-db
     volumes:
       - ./volumes/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:Z
       - ./volumes/db/webhooks.sql:/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql:Z
@@ -403,6 +452,7 @@ services:
     environment:
       TZ: ${TZ:-America/New_York}
       LOGFLARE_API_KEY: ${LOGFLARE_API_KEY:-changeme_logflare_api_key}
+      CONTAINER_NAME: supabase-vector
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./volumes/logs/vector.yml:/etc/vector/vector.yml:ro
@@ -447,6 +497,7 @@ services:
       POOLER_DEFAULT_POOL_SIZE: ${POOLER_DEFAULT_POOL_SIZE:-15}
       POOLER_MAX_CLIENT_CONN: ${POOLER_MAX_CLIENT_CONN:-100}
       POOLER_POOL_MODE: transaction
+      CONTAINER_NAME: supabase-pooler
     ports:
       - ${POSTGRES_PORT:-5432}:5432
       - ${POOLER_PROXY_PORT_TRANSACTION:-6543}:6543
@@ -469,3 +520,7 @@ networks:
   supabase:
     name: supabase
     external: false
+  proxy:
+    external: true
+  cloudflare:
+    external: true
