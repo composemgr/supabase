@@ -1,4 +1,4 @@
-# nginx proxy address - http://172.17.0.1:3000
+# nginx proxy address - http://172.17.0.1:64359
 
 name: supabase
 x-logging: &default-logging
@@ -68,34 +68,15 @@ services:
       DASHBOARD_PASSWORD: ${APP_ADMIN_PASS:-changeme_dashboard_password}
       CONTAINER_NAME: supabase-kong
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
-    ports:
-      - ${KONG_HTTP_PORT:-8000}:8000/tcp
-      - ${KONG_HTTPS_PORT:-8443}:8443/tcp
     volumes:
       - ./volumes/api/kong.yml:/home/kong/temp.yml:ro
     depends_on:
       analytics:
         condition: service_healthy
-    labels:
-      - 'traefik.enable=true'
-      - 'cloudflare.enable=true'
-      - 'traefik.docker.network=proxy'
-      - 'cloudflare.service=http://supabase-kong:8000'
-      - 'cloudflare.hostname=supabase.${CLOUDFLARE_ZONE_NAME:-}'
-      - 'traefik.http.routers.supabase-kong.entrypoints=http'
-      - 'traefik.http.routers.supabase-kong-secure.tls=true'
-      - 'traefik.http.routers.supabase-kong.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.middlewares.supabase-kong-https-redirect.redirectscheme.scheme=https'
-      - 'traefik.http.routers.supabase-kong.middlewares=supabase-kong-https-redirect'
-      - 'traefik.http.routers.supabase-kong-secure.entrypoints=https'
-      - 'traefik.http.routers.supabase-kong-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.routers.supabase-kong-secure.tls.certresolver=cloudflare'
-      - 'traefik.http.routers.supabase-kong-secure.service=supabase-kong'
-      - 'traefik.http.services.supabase-kong.loadbalancer.server.port=8000'
+    ports:
+      - '172.17.0.1:64359:8000'
     networks:
       - supabase
-      - proxy
-      - cloudflare
 
   auth:
     image: supabase/gotrue:v2.186.0
@@ -371,8 +352,6 @@ services:
       LOGFLARE_FEATURE_FLAG_OVERRIDE: multibackend=true
       CONTAINER_NAME: supabase-analytics
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
-    ports:
-      - 4000:4000
     healthcheck:
       test: ['CMD', 'curl', 'http://localhost:4000/health']
       timeout: 5s
@@ -381,26 +360,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    labels:
-      - 'traefik.enable=true'
-      - 'cloudflare.enable=true'
-      - 'traefik.docker.network=proxy'
-      - 'cloudflare.service=http://supabase-analytics:4000'
-      - 'cloudflare.hostname=supabase.${CLOUDFLARE_ZONE_NAME:-}'
-      - 'traefik.http.routers.supabase-analytics.entrypoints=http'
-      - 'traefik.http.routers.supabase-analytics-secure.tls=true'
-      - 'traefik.http.routers.supabase-analytics.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.middlewares.supabase-analytics-https-redirect.redirectscheme.scheme=https'
-      - 'traefik.http.routers.supabase-analytics.middlewares=supabase-analytics-https-redirect'
-      - 'traefik.http.routers.supabase-analytics-secure.entrypoints=https'
-      - 'traefik.http.routers.supabase-analytics-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.routers.supabase-analytics-secure.tls.certresolver=cloudflare'
-      - 'traefik.http.routers.supabase-analytics-secure.service=supabase-analytics'
-      - 'traefik.http.services.supabase-analytics.loadbalancer.server.port=4000'
     networks:
       - supabase
-      - proxy
-      - cloudflare
 
   db:
     image: supabase/postgres:15.8.1.085
@@ -498,9 +459,6 @@ services:
       POOLER_MAX_CLIENT_CONN: ${POOLER_MAX_CLIENT_CONN:-100}
       POOLER_POOL_MODE: transaction
       CONTAINER_NAME: supabase-pooler
-    ports:
-      - ${POSTGRES_PORT:-5432}:5432
-      - ${POOLER_PROXY_PORT_TRANSACTION:-6543}:6543
     volumes:
       - ./volumes/pooler/pooler.exs:/etc/pooler/pooler.exs:ro
     healthcheck:
@@ -520,7 +478,3 @@ networks:
   supabase:
     name: supabase
     external: false
-  proxy:
-    external: true
-  cloudflare:
-    external: true
