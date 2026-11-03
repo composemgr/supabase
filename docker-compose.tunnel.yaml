@@ -66,6 +66,12 @@ services:
       DASHBOARD_PASSWORD: ${APP_ADMIN_PASS:-changeme_dashboard_password}
       CONTAINER_NAME: supabase-kong
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+    healthcheck:
+      test: ['CMD-SHELL', 'kong-health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     volumes:
       - ./volumes/api/kong.yml:/home/kong/temp.yml:ro
     depends_on:
@@ -297,6 +303,12 @@ services:
       PG_META_DB_USER: supabase_admin
       PG_META_DB_PASSWORD: ${DB_ADMIN_PASS:-changeme_db_password}
       CONTAINER_NAME: supabase-meta
+    healthcheck:
+      test: ['CMD-SHELL', 'node -e "fetch(''http://localhost:8080/health'').then((r) => {if (r.status !== 200) throw new Error(r.status)})"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     depends_on:
       db:
         condition: service_healthy
